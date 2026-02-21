@@ -12,7 +12,6 @@
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             min-height: 100vh;
@@ -22,7 +21,6 @@
             align-items: center;
             padding: 20px;
         }
-
         .glass-container {
             width: 100%;
             max-width: 700px;
@@ -34,7 +32,6 @@
             box-shadow: 0 8px 32px rgba(0, 100, 0, 0.1);
             padding: 30px;
         }
-
         h2 {
             color: #1b5e20;
             font-weight: 600;
@@ -43,11 +40,9 @@
             letter-spacing: 0.5px;
             text-shadow: 0 2px 4px rgba(0,50,0,0.1);
         }
-
         .form-group {
             margin-bottom: 20px;
         }
-
         label {
             display: block;
             margin-bottom: 6px;
@@ -55,7 +50,6 @@
             color: #2e7d32;
             font-size: 0.95rem;
         }
-
         input, select {
             width: 100%;
             padding: 12px 15px;
@@ -68,14 +62,12 @@
             border: 1px solid rgba(76, 175, 80, 0.3);
             transition: all 0.3s ease;
         }
-
         input:focus, select:focus {
             outline: none;
             border-color: #4caf50;
             background: rgba(255, 255, 255, 0.95);
             box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
         }
-
         button {
             width: 100%;
             padding: 14px;
@@ -90,18 +82,15 @@
             box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
             margin-top: 10px;
         }
-
         button:hover:not(:disabled) {
             background: linear-gradient(135deg, #66bb6a, #388e3c);
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(46, 125, 50, 0.4);
         }
-
         button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-
         #result, #error {
             margin-top: 25px;
             padding: 20px;
@@ -111,26 +100,21 @@
             display: none;
             text-align: center;
         }
-
         #result {
             border-left: 5px solid #4caf50;
         }
-
         #error {
             border-left: 5px solid #f44336;
             background: rgba(255, 235, 238, 0.7);
         }
-
         #result h3 {
             color: #1b5e20;
             margin-bottom: 10px;
         }
-
         #error h3 {
             color: #c62828;
             margin-bottom: 10px;
         }
-
         #studentId {
             font-weight: 700;
             color: #1b5e20;
@@ -140,7 +124,6 @@
             display: inline-block;
             margin-top: 5px;
         }
-
         ::placeholder {
             color: #6b8e6b;
             opacity: 0.7;
@@ -155,37 +138,30 @@
                 <label for="fullName">Full Name *</label>
                 <input type="text" id="fullName" placeholder="Enter full name" required>
             </div>
-
             <div class="form-group">
                 <label for="dob">Date of Birth *</label>
                 <input type="date" id="dob" required>
             </div>
-
             <div class="form-group">
                 <label for="fatherName">Father's Name *</label>
                 <input type="text" id="fatherName" placeholder="Father's full name" required>
             </div>
-
             <div class="form-group">
                 <label for="fatherPhone">Father's Phone *</label>
                 <input type="tel" id="fatherPhone" placeholder="e.g., 0244123456" required>
             </div>
-
             <div class="form-group">
                 <label for="motherName">Mother's Name *</label>
                 <input type="text" id="motherName" placeholder="Mother's full name" required>
             </div>
-
             <div class="form-group">
                 <label for="motherPhone">Mother's Phone *</label>
                 <input type="tel" id="motherPhone" placeholder="e.g., 0244123456" required>
             </div>
-
             <div class="form-group">
                 <label for="email">Email Address *</label>
                 <input type="email" id="email" placeholder="student@example.com" required>
             </div>
-
             <div class="form-group">
                 <label for="branch">Branch *</label>
                 <select id="branch" required>
@@ -197,7 +173,6 @@
                     <option value="Tamale">Tamale</option>
                 </select>
             </div>
-
             <div class="form-group">
                 <label for="programme">Programme *</label>
                 <select id="programme" required>
@@ -211,15 +186,12 @@
                     <option value="Technical">Technical</option>
                 </select>
             </div>
-
             <button type="submit" id="registerBtn">Register</button>
         </form>
-
         <div id="result">
             <h3>🎉 Registration Successful!</h3>
             <p>Your Student ID: <span id="studentId"></span></p>
         </div>
-
         <div id="error">
             <h3>⚠️ Registration Failed</h3>
             <p id="errorMessage"></p>
@@ -246,32 +218,25 @@
         const errorMessage = document.getElementById('errorMessage');
         const studentIdSpan = document.getElementById('studentId');
 
-        // Hide messages initially
         resultDiv.style.display = 'none';
         errorDiv.style.display = 'none';
 
         registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-
-            // Disable button to prevent double submission
             registerBtn.disabled = true;
             registerBtn.textContent = 'Registering...';
-
-            // Hide any previous messages
             resultDiv.style.display = 'none';
             errorDiv.style.display = 'none';
 
             try {
-                // Collect form data
                 const email = document.getElementById('email').value.trim();
 
-                // 1. Check if email already exists
+                // Check for duplicate email
                 const existingQuery = await db.collection('students').where('email', '==', email).get();
                 if (!existingQuery.empty) {
                     throw new Error('A student with this email is already registered.');
                 }
 
-                // Prepare data (without ID yet)
                 const formData = {
                     fullName: document.getElementById('fullName').value,
                     dob: document.getElementById('dob').value,
@@ -285,7 +250,7 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                // 2. Generate unique 10-digit ID and save
+                // Generate unique 10-digit ID and save
                 let studentId = null;
                 let success = false;
                 let attempts = 0;
@@ -297,6 +262,7 @@
                     const candidateId = (timestamp + random).slice(0, 10);
 
                     try {
+                        // Use set with merge: false – document ID = candidateId, and store studentId field
                         await db.collection('students').doc(candidateId).set({
                             ...formData,
                             studentId: candidateId
@@ -308,15 +274,14 @@
                             attempts++;
                             continue;
                         }
-                        throw error; // other error
+                        throw error;
                     }
                 }
 
                 if (!success) {
-                    throw new Error('Could not generate a unique ID. Please try again.');
+                    throw new Error('Could not generate a unique ID after several attempts. Please try again.');
                 }
 
-                // Show success
                 studentIdSpan.textContent = studentId;
                 resultDiv.style.display = 'block';
                 registerForm.reset();
