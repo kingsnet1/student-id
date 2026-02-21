@@ -311,7 +311,6 @@
             const branchFilter = document.getElementById('sortBranch').value;
 
             let filtered = allStudents.filter(s => {
-                // Search filter (matches ID, name, email, father name, mother name, phones)
                 const matchesSearch = searchTerm === '' || 
                     (s.studentId && s.studentId.toLowerCase().includes(searchTerm)) ||
                     (s.fullName && s.fullName.toLowerCase().includes(searchTerm)) ||
@@ -356,7 +355,6 @@
             document.getElementById('studentTable').innerHTML = html;
         }
 
-        // Event listeners for filters and search
         document.getElementById('searchInput').addEventListener('input', filterAndDisplay);
         document.getElementById('sortProgramme').addEventListener('change', filterAndDisplay);
         document.getElementById('sortBranch').addEventListener('change', filterAndDisplay);
@@ -420,7 +418,7 @@
         }
         window.closeModal = closeModal;
 
-        // Export CSV (including branch)
+        // Export CSV
         document.getElementById('exportBtn').addEventListener('click', () => {
             if (allStudents.length === 0) return alert('No data to export.');
             const headers = ['Student ID', 'Full Name', 'Date of Birth', "Father's Name", "Father's Phone", "Mother's Name", "Mother's Phone", 'Email', 'Branch', 'Programme'];
@@ -455,7 +453,7 @@
             window.URL.revokeObjectURL(url);
         });
 
-        // Import CSV (expecting 10 columns)
+        // Import CSV
         document.getElementById('importBtn').addEventListener('click', () => {
             const file = document.getElementById('importFile').files[0];
             if (!file) return alert('Please select a CSV file.');
@@ -468,8 +466,6 @@
                 let success = 0, failed = 0;
 
                 for (const row of dataRows) {
-                    // Simple CSV parsing (if fields contain commas, they should be quoted)
-                    // This basic split works for clean data.
                     const fields = row.split(',').map(f => f.trim().replace(/^"(.*)"$/, '$1'));
                     if (fields.length < 10) { failed++; continue; }
                     const [studentId, fullName, dob, fatherName, fatherPhone, motherName, motherPhone, email, branch, programme] = fields;
