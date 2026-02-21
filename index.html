@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>First Class SHS - Student Registration</title>
-    <!-- Firebase SDK (Firestore only) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <style>
@@ -92,21 +91,34 @@
             margin-top: 10px;
         }
 
-        button:hover {
+        button:hover:not(:disabled) {
             background: linear-gradient(135deg, #66bb6a, #388e3c);
             transform: translateY(-2px);
             box-shadow: 0 8px 20px rgba(46, 125, 50, 0.4);
         }
 
-        #result {
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #result, #error {
             margin-top: 25px;
             padding: 20px;
             background: rgba(232, 245, 233, 0.7);
             backdrop-filter: blur(5px);
             border-radius: 16px;
-            border-left: 5px solid #4caf50;
             display: none;
             text-align: center;
+        }
+
+        #result {
+            border-left: 5px solid #4caf50;
+        }
+
+        #error {
+            border-left: 5px solid #f44336;
+            background: rgba(255, 235, 238, 0.7);
         }
 
         #result h3 {
@@ -114,9 +126,9 @@
             margin-bottom: 10px;
         }
 
-        #result p {
-            font-size: 1.2rem;
-            color: #2e7d32;
+        #error h3 {
+            color: #c62828;
+            margin-bottom: 10px;
         }
 
         #studentId {
@@ -129,7 +141,6 @@
             margin-top: 5px;
         }
 
-        /* subtle placeholder style */
         ::placeholder {
             color: #6b8e6b;
             opacity: 0.7;
@@ -201,12 +212,17 @@
                 </select>
             </div>
 
-            <button type="submit">Register</button>
+            <button type="submit" id="registerBtn">Register</button>
         </form>
 
         <div id="result">
             <h3>🎉 Registration Successful!</h3>
             <p>Your Student ID: <span id="studentId"></span></p>
+        </div>
+
+        <div id="error">
+            <h3>⚠️ Registration Failed</h3>
+            <p id="errorMessage"></p>
         </div>
     </div>
 
@@ -223,60 +239,95 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        const registerForm = document.getElementById('registerForm');
+        const registerBtn = document.getElementById('registerBtn');
+        const resultDiv = document.getElementById('result');
+        const errorDiv = document.getElementById('error');
+        const errorMessage = document.getElementById('errorMessage');
+        const studentIdSpan = document.getElementById('studentId');
+
+        // Hide messages initially
+        resultDiv.style.display = 'none';
+        errorDiv.style.display = 'none';
+
+        registerForm.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Collect form data (including branch)
-            const formData = {
-                fullName: document.getElementById('fullName').value,
-                dob: document.getElementById('dob').value,
-                fatherName: document.getElementById('fatherName').value,
-                fatherPhone: document.getElementById('fatherPhone').value,
-                motherName: document.getElementById('motherName').value,
-                motherPhone: document.getElementById('motherPhone').value,
-                email: document.getElementById('email').value,
-                branch: document.getElementById('branch').value,
-                programme: document.getElementById('programme').value,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            // Disable button to prevent double submission
+            registerBtn.disabled = true;
+            registerBtn.textContent = 'Registering...';
 
-            // Generate unique 10-digit ID (document ID) with retries
-            let studentId = null;
-            let success = false;
-            let attempts = 0;
-            const maxAttempts = 10;
+            // Hide any previous messages
+            resultDiv.style.display = 'none';
+            errorDiv.style.display = 'none';
 
-            while (!success && attempts < maxAttempts) {
-                const timestamp = Date.now().toString().slice(-5);
-                const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-                const candidateId = (timestamp + random).slice(0, 10);
+            try {
+                // Collect form data
+                const email = document.getElementById('email').value.trim();
 
-                try {
-                    await db.collection('students').doc(candidateId).set({
-                        ...formData,
-                        studentId: candidateId
-                    });
-                    studentId = candidateId;
-                    success = true;
-                } catch (error) {
-                    if (error.code === 'already-exists') {
-                        attempts++;
-                        continue;
-                    }
-                    // Other error (permissions, etc.) – rethrow
-                    throw error;
+                // 1. Check if email already exists
+                const existingQuery = await db.collection('students').where('email', '==', email).get();
+                if (!existingQuery.empty) {
+                    throw new Error('A student with this email is already registered.');
                 }
-            }
 
-            if (!success) {
-                alert('Could not generate a unique ID. Please try again.');
-                return;
-            }
+                // Prepare data (without ID yet)
+                const formData = {
+                    fullName: document.getElementById('fullName').value,
+                    dob: document.getElementById('dob').value,
+                    fatherName: document.getElementById('fatherName').value,
+                    fatherPhone: document.getElementById('fatherPhone').value,
+                    motherName: document.getElementById('motherName').value,
+                    motherPhone: document.getElementById('motherPhone').value,
+                    email: email,
+                    branch: document.getElementById('branch').value,
+                    programme: document.getElementById('programme').value,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                };
 
-            // Show success
-            document.getElementById('studentId').textContent = studentId;
-            document.getElementById('result').style.display = 'block';
-            document.getElementById('registerForm').reset();
+                // 2. Generate unique 10-digit ID and save
+                let studentId = null;
+                let success = false;
+                let attempts = 0;
+                const maxAttempts = 10;
+
+                while (!success && attempts < maxAttempts) {
+                    const timestamp = Date.now().toString().slice(-5);
+                    const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+                    const candidateId = (timestamp + random).slice(0, 10);
+
+                    try {
+                        await db.collection('students').doc(candidateId).set({
+                            ...formData,
+                            studentId: candidateId
+                        });
+                        studentId = candidateId;
+                        success = true;
+                    } catch (error) {
+                        if (error.code === 'already-exists') {
+                            attempts++;
+                            continue;
+                        }
+                        throw error; // other error
+                    }
+                }
+
+                if (!success) {
+                    throw new Error('Could not generate a unique ID. Please try again.');
+                }
+
+                // Show success
+                studentIdSpan.textContent = studentId;
+                resultDiv.style.display = 'block';
+                registerForm.reset();
+
+            } catch (error) {
+                errorMessage.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                registerBtn.disabled = false;
+                registerBtn.textContent = 'Register';
+            }
         });
     </script>
 </body>
