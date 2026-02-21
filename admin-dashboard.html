@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - First Class SHS</title>
+    <!-- Firebase SDK (Auth and Firestore) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <style>
+        /* Green & White Theme */
+        body {
+            margin: 20px;
+            font-family: Arial, sans-serif;
+            background: white;
+            color: #2e7d32;
+        }
+        h2 {
+            color: #1b5e20;
+            border-bottom: 2px solid #4caf50;
+            padding-bottom: 10px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            background: white;
+        }
+        th, td {
+            border: 1px solid #c8e6c9;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #4caf50;
+            color: white;
+            cursor: pointer;
+        }
+        tr:nth-child(even) {
+            background-color: #f1f8e9;
+        }
+        .btn {
+            padding: 5px 10px;
+            margin: 2px;
+            cursor: pointer;
+            border: none;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .edit {
+            background: #66bb6a;
+            color: white;
+        }
+        .edit:hover {
+            background: #4caf50;
+        }
+        .delete {
+            background: #2e7d32;
+            color: white;
+        }
+        .delete:hover {
+            background: #1b5e20;
+        }
+        #logout {
+            float: right;
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #logout:hover {
+            background: #388e3c;
+        }
+        #importExport {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 5px;
+        }
+        #importExport input, #importExport select, #importExport button {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #a5d6a7;
+            border-radius: 3px;
+        }
+        #importExport button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #importExport button:hover {
+            background: #388e3c;
+        }
+        /* Modal styling */
+        #editModal {
+            display: none;
+            position: fixed;
+            top: 20%;
+            left: 30%;
+            background: white;
+            padding: 20px;
+            border: 2px solid #4caf50;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+            width: 400px;
+        }
+        #editModal h3 {
+            margin-top: 0;
+            color: #1b5e20;
+        }
+        #editForm input, #editForm select, #editForm button {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #a5d6a7;
+            border-radius: 3px;
+            box-sizing: border-box;
+        }
+        #editForm button[type="submit"] {
+            background: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #editForm button[type="button"] {
+            background: #f44336;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #editForm button[type="submit"]:hover {
+            background: #388e3c;
+        }
+        #editForm button[type="button"]:hover {
+            background: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <button id="logout">Logout</button>
+    <h2>Student Records</h2>
+    <div id="importExport">
+        <input type="file" id="importFile" accept=".csv">
+        <button id="importBtn">Import CSV</button>
+        <button id="exportBtn">Export CSV</button>
+        <label for="sortProgramme">Filter by Programme:</label>
+        <select id="sortProgramme">
+            <option value="">All</option>
+            <option value="General Science">General Science</option>
+            <option value="General Arts">General Arts</option>
+            <option value="Agric Science">Agric Science</option>
+            <option value="Business">Business</option>
+            <option value="Home Economics">Home Economics</option>
+            <option value="Visual Arts">Visual Arts</option>
+            <option value="Technical">Technical</option>
+        </select>
+    </div>
+    <div id="studentTable">Loading...</div>
+
+    <!-- Edit Modal -->
+    <div id="editModal">
+        <h3>Edit Student</h3>
+        <form id="editForm">
+            <input type="hidden" id="editDocId">
+            <input type="text" id="editFullName" placeholder="Full Name" required>
+            <input type="date" id="editDob" required>
+            <input type="text" id="editFatherName" placeholder="Father's Name" required>
+            <input type="tel" id="editFatherPhone" placeholder="Father's Phone" required>
+            <input type="text" id="editMotherName" placeholder="Mother's Name" required>
+            <input type="tel" id="editMotherPhone" placeholder="Mother's Phone" required>
+            <input type="email" id="editEmail" placeholder="Email" required>
+            <select id="editProgramme" required>
+                <option value="General Science">General Science</option>
+                <option value="General Arts">General Arts</option>
+                <option value="Agric Science">Agric Science</option>
+                <option value="Business">Business</option>
+                <option value="Home Economics">Home Economics</option>
+                <option value="Visual Arts">Visual Arts</option>
+                <option value="Technical">Technical</option>
+            </select>
+            <button type="submit">Update</button>
+            <button type="button" onclick="closeModal()">Cancel</button>
+        </form>
+    </div>
+
+    <script>
+        // 🔁 REPLACE WITH YOUR FIREBASE CONFIGURATION
+        const firebaseConfig = {
+    apiKey: "AIzaSyD2NcVIBagGd2X6iWPVc8jgsNziJ46qowA",
+    authDomain: "student-id-77c22.firebaseapp.com",
+    projectId: "student-id-77c22",
+    storageBucket: "student-id-77c22.firebasestorage.app",
+    messagingSenderId: "291646901870",
+    appId: "1:291646901870:web:05a5fce5252ede9e5a207f"
+  };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Global variable to store all students (for filtering and export)
+        let allStudents = [];
+
+        // Check authentication on page load
+        auth.onAuthStateChanged(user => {
+            if (!user) {
+                // Not logged in → redirect to login page
+                window.location.href = 'admin-login.html';
+            } else {
+                // Logged in → load student data
+                loadStudents();
+            }
+        });
+
+        // Logout button
+        document.getElementById('logout').addEventListener('click', () => {
+            auth.signOut();
+        });
+
+        // Load all students from Firestore, ordered by creation date (newest first)
+        async function loadStudents() {
+            try {
+                const snapshot = await db.collection('students').orderBy('createdAt', 'desc').get();
+                allStudents = snapshot.docs.map(doc => ({
+                    id: doc.id,                 // document ID = student ID
+                    ...doc.data()
+                }));
+                displayStudents(allStudents);
+            } catch (error) {
+                console.error('Error loading students:', error);
+                document.getElementById('studentTable').innerHTML = '<p style="color:red;">Failed to load students.</p>';
+            }
+        }
+
+        // Display students in table, optionally filtered by programme
+        function displayStudents(students) {
+            const programmeFilter = document.getElementById('sortProgramme').value;
+            let filtered = students;
+            if (programmeFilter) {
+                filtered = students.filter(s => s.programme === programmeFilter);
+            }
+
+            if (filtered.length === 0) {
+                document.getElementById('studentTable').innerHTML = '<p>No students found.</p>';
+                return;
+            }
+
+            let html = '<table><tr><th>ID</th><th>Name</th><th>Programme</th><th>Father</th><th>Mother</th><th>Email</th><th>Actions</th></tr>';
+            filtered.forEach(s => {
+                html += `<tr>
+                    <td>${s.studentId || s.id}</td>
+                    <td>${s.fullName || ''}</td>
+                    <td>${s.programme || ''}</td>
+                    <td>${s.fatherName || ''} (${s.fatherPhone || ''})</td>
+                    <td>${s.motherName || ''} (${s.motherPhone || ''})</td>
+                    <td>${s.email || ''}</td>
+                    <td>
+                        <button class="btn edit" onclick="editStudent('${s.id}')">Edit</button>
+                        <button class="btn delete" onclick="deleteStudent('${s.id}')">Delete</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</table>';
+            document.getElementById('studentTable').innerHTML = html;
+        }
+
+        // Re‑filter when programme selection changes
+        document.getElementById('sortProgramme').addEventListener('change', () => {
+            displayStudents(allStudents);
+        });
+
+        // Edit button: populate modal with student data
+        window.editStudent = async (id) => {
+            try {
+                const doc = await db.collection('students').doc(id).get();
+                if (!doc.exists) {
+                    alert('Student not found.');
+                    return;
+                }
+                const data = doc.data();
+                document.getElementById('editDocId').value = id;
+                document.getElementById('editFullName').value = data.fullName || '';
+                document.getElementById('editDob').value = data.dob || '';
+                document.getElementById('editFatherName').value = data.fatherName || '';
+                document.getElementById('editFatherPhone').value = data.fatherPhone || '';
+                document.getElementById('editMotherName').value = data.motherName || '';
+                document.getElementById('editMotherPhone').value = data.motherPhone || '';
+                document.getElementById('editEmail').value = data.email || '';
+                document.getElementById('editProgramme').value = data.programme || '';
+                document.getElementById('editModal').style.display = 'block';
+            } catch (error) {
+                alert('Error loading student: ' + error.message);
+            }
+        };
+
+        // Handle edit form submission
+        document.getElementById('editForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('editDocId').value;
+            const updatedData = {
+                fullName: document.getElementById('editFullName').value,
+                dob: document.getElementById('editDob').value,
+                fatherName: document.getElementById('editFatherName').value,
+                fatherPhone: document.getElementById('editFatherPhone').value,
+                motherName: document.getElementById('editMotherName').value,
+                motherPhone: document.getElementById('editMotherPhone').value,
+                email: document.getElementById('editEmail').value,
+                programme: document.getElementById('editProgramme').value
+                // Do not update studentId or createdAt
+            };
+            try {
+                await db.collection('students').doc(id).update(updatedData);
+                closeModal();
+                loadStudents(); // refresh table
+            } catch (error) {
+                alert('Error updating: ' + error.message);
+            }
+        });
+
+        // Delete student
+        window.deleteStudent = async (id) => {
+            if (!confirm('Are you sure you want to delete this student?')) return;
+            try {
+                await db.collection('students').doc(id).delete();
+                loadStudents(); // refresh table
+            } catch (error) {
+                alert('Error deleting: ' + error.message);
+            }
+        };
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        // Export to CSV
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            if (allStudents.length === 0) {
+                alert('No data to export.');
+                return;
+            }
+            // Define CSV columns
+            const headers = ['Student ID', 'Full Name', 'Date of Birth', "Father's Name", "Father's Phone", "Mother's Name", "Mother's Phone", 'Email', 'Programme'];
+            const rows = allStudents.map(s => [
+                s.studentId || s.id,
+                s.fullName || '',
+                s.dob || '',
+                s.fatherName || '',
+                s.fatherPhone || '',
+                s.motherName || '',
+                s.motherPhone || '',
+                s.email || '',
+                s.programme || ''
+            ]);
+            // Build CSV string
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                // Escape fields containing commas or quotes
+                const escapedRow = row.map(cell => {
+                    if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))) {
+                        return `"${cell.replace(/"/g, '""')}"`;
+                    }
+                    return cell;
+                }).join(',');
+                csv += escapedRow + '\n';
+            });
+
+            // Create download link
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'students.csv';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        });
+
+        // Import CSV
+        document.getElementById('importBtn').addEventListener('click', () => {
+            const file = document.getElementById('importFile').files[0];
+            if (!file) {
+                alert('Please select a CSV file.');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const text = e.target.result;
+                const lines = text.split('\n').map(line => line.trim()).filter(line => line);
+                if (lines.length < 2) {
+                    alert('CSV file must have a header and at least one data row.');
+                    return;
+                }
+                // Assume first line is header, skip it
+                const dataRows = lines.slice(1);
+                let successCount = 0;
+                let errorCount = 0;
+
+                for (const row of dataRows) {
+                    // Simple CSV parsing (assumes no commas inside quoted fields)
+                    const fields = row.split(',').map(f => f.trim());
+                    if (fields.length < 9) {
+                        errorCount++;
+                        continue; // skip invalid rows
+                    }
+                    const [studentId, fullName, dob, fatherName, fatherPhone, motherName, motherPhone, email, programme] = fields;
+
+                    // Create a document with the given studentId as the document ID
+                    // If studentId is empty, generate a new one (optional, but we'll use provided ID)
+                    if (!studentId) {
+                        errorCount++;
+                        continue;
+                    }
+
+                    const studentData = {
+                        studentId: studentId,
+                        fullName: fullName,
+                        dob: dob,
+                        fatherName: fatherName,
+                        fatherPhone: fatherPhone,
+                        motherName: motherName,
+                        motherPhone: motherPhone,
+                        email: email,
+                        programme: programme,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+
+                    try {
+                        // Use set with merge: false to avoid overwriting existing? We'll use set to overwrite if ID exists, or create new.
+                        await db.collection('students').doc(studentId).set(studentData);
+                        successCount++;
+                    } catch (err) {
+                        console.error('Import error for ID', studentId, err);
+                        errorCount++;
+                    }
+                }
+
+                alert(`Import completed. Success: ${successCount}, Failed: ${errorCount}`);
+                loadStudents(); // refresh table
+            };
+            reader.readAsText(file);
+        });
+
+        // Expose closeModal to global scope for onclick in modal
+        window.closeModal = closeModal;
+    </script>
+</body>
+</html>

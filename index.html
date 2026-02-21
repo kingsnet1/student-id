@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>First Class SHS - Student Registration</title>
+    <!-- Firebase SDK (only Firestore needed) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <style>
+        /* Green & White theme – same as before */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #ffffff;
+            color: #2e7d32;
+        }
+        h2 {
+            color: #1b5e20;
+            border-bottom: 2px solid #4caf50;
+            padding-bottom: 10px;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border: 1px solid #a5d6a7;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover {
+            background: #388e3c;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-left: 5px solid #4caf50;
+            border-radius: 4px;
+            display: none;
+        }
+        #studentId {
+            color: #1b5e20;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h2>First Class SHS - Student Registration</h2>
+    <form id="registerForm">
+        <input type="text" id="fullName" placeholder="Full Name" required>
+        <input type="date" id="dob" required>
+        <input type="text" id="fatherName" placeholder="Father's Name" required>
+        <input type="tel" id="fatherPhone" placeholder="Father's Phone" required>
+        <input type="text" id="motherName" placeholder="Mother's Name" required>
+        <input type="tel" id="motherPhone" placeholder="Mother's Phone" required>
+        <input type="email" id="email" placeholder="Email Address" required>
+        <select id="programme" required>
+            <option value="">Select Programme</option>
+            <option value="General Science">General Science</option>
+            <option value="General Arts">General Arts</option>
+            <option value="Agric Science">Agric Science</option>
+            <option value="Business">Business</option>
+            <option value="Home Economics">Home Economics</option>
+            <option value="Visual Arts">Visual Arts</option>
+            <option value="Technical">Technical</option>
+        </select>
+        <button type="submit">Register</button>
+    </form>
+    <div id="result">
+        <h3>Registration Successful!</h3>
+        <p>Your Student ID: <strong id="studentId"></strong></p>
+    </div>
+
+    <script>
+        // 🔁 REPLACE WITH YOUR FIREBASE CONFIG
+        const firebaseConfig = {
+    apiKey: "AIzaSyD2NcVIBagGd2X6iWPVc8jgsNziJ46qowA",
+    authDomain: "student-id-77c22.firebaseapp.com",
+    projectId: "student-id-77c22",
+    storageBucket: "student-id-77c22.firebasestorage.app",
+    messagingSenderId: "291646901870",
+    appId: "1:291646901870:web:05a5fce5252ede9e5a207f"
+  };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            // Collect form data
+            const formData = {
+                fullName: document.getElementById('fullName').value,
+                dob: document.getElementById('dob').value,
+                fatherName: document.getElementById('fatherName').value,
+                fatherPhone: document.getElementById('fatherPhone').value,
+                motherName: document.getElementById('motherName').value,
+                motherPhone: document.getElementById('motherPhone').value,
+                email: document.getElementById('email').value,
+                programme: document.getElementById('programme').value,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            // Generate a unique 10-digit student ID and save
+            let studentId = null;
+            let success = false;
+            let attempts = 0;
+            const maxAttempts = 10;
+
+            while (!success && attempts < maxAttempts) {
+                // Generate candidate ID: last 5 digits of timestamp + 5 random digits
+                const timestamp = Date.now().toString().slice(-5);
+                const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
+                const candidateId = (timestamp + random).slice(0, 10); // exactly 10 digits
+
+                try {
+                    // Try to create a document with this ID
+                    await db.collection('students').doc(candidateId).set({
+                        ...formData,
+                        studentId: candidateId  // store ID as field too
+                    });
+                    // If successful, we're done
+                    studentId = candidateId;
+                    success = true;
+                } catch (error) {
+                    // If error is due to document already existing, retry
+                    if (error.code === 'already-exists') {
+                        attempts++;
+                        continue;
+                    }
+                    // Other errors (permissions, network) – throw
+                    throw error;
+                }
+            }
+
+            if (!success) {
+                alert('Could not generate a unique ID after several attempts. Please try again.');
+                return;
+            }
+
+            // Display the generated ID
+            document.getElementById('studentId').textContent = studentId;
+            document.getElementById('result').style.display = 'block';
+            document.getElementById('registerForm').reset();
+        });
+    </script>
+</body>
+</html>
