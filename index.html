@@ -7,6 +7,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <style>
+        /* (same glass styling as before – keep unchanged) */
         * {
             margin: 0;
             padding: 0;
@@ -199,7 +200,7 @@
     </div>
 
     <script>
-        // 🔁 Your Firebase configuration
+        // Your Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyD2NcVIBagGd2X6iWPVc8jgsNziJ46qowA",
             authDomain: "student-id-77c22.firebaseapp.com",
@@ -256,44 +257,30 @@
                     const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
                     const candidateId = (timestamp + random).slice(0, 10);
 
-                    // Use a transaction to atomically check email and create both documents
                     try {
+                        // Use a transaction that performs only writes.
+                        // If either document already exists, the transaction will abort.
                         await db.runTransaction(async (transaction) => {
-                            // Check if email already exists in emailLookup
                             const emailRef = db.collection('emailLookup').doc(email);
-                            const emailDoc = await transaction.get(emailRef);
-                            if (emailDoc.exists) {
-                                throw new Error('A student with this email is already registered.');
-                            }
-
-                            // Check if student ID already exists (very unlikely but safe)
                             const studentRef = db.collection('students').doc(candidateId);
-                            const studentDoc = await transaction.get(studentRef);
-                            if (studentDoc.exists) {
-                                throw new Error('ID collision, retrying...'); // will be caught and retried
-                            }
 
-                            // Create email lookup entry
+                            // Write both documents – if either fails (already exists), transaction aborts.
                             transaction.set(emailRef, { studentId: candidateId });
-
-                            // Create student document
                             transaction.set(studentRef, {
                                 ...studentData,
                                 studentId: candidateId
                             });
                         });
 
-                        // If transaction succeeds, we are done
+                        // If we reach here, transaction succeeded.
                         studentId = candidateId;
                         success = true;
                     } catch (error) {
-                        if (error.message === 'A student with this email is already registered.') {
-                            // Duplicate email – stop retrying
-                            throw error;
-                        }
-                        if (error.message === 'ID collision, retrying...') {
+                        // Check if the error is due to a duplicate (either email or ID)
+                        // Firestore transaction errors don't have a specific code, so we check the message.
+                        if (error.message.includes('already exists')) {
                             attempts++;
-                            continue;
+                            continue; // try again with a new ID
                         }
                         // For other errors (permissions, network), rethrow
                         throw error;
@@ -301,7 +288,7 @@
                 }
 
                 if (!success) {
-                    throw new Error('Unable to generate a unique ID after several attempts. Please try again.');
+                    throw new Error('Unable to generate a unique ID. Please try again later.');
                 }
 
                 // Show success
