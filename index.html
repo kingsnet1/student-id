@@ -199,15 +199,15 @@
     </div>
 
     <script>
-        // 🔁 REPLACE WITH YOUR FIREBASE CONFIG
+        // 🔁 Your Firebase configuration
         const firebaseConfig = {
-    apiKey: "AIzaSyD2NcVIBagGd2X6iWPVc8jgsNziJ46qowA",
-    authDomain: "student-id-77c22.firebaseapp.com",
-    projectId: "student-id-77c22",
-    storageBucket: "student-id-77c22.firebasestorage.app",
-    messagingSenderId: "291646901870",
-    appId: "1:291646901870:web:05a5fce5252ede9e5a207f"
-  };
+            apiKey: "AIzaSyD2NcVIBagGd2X6iWPVc8jgsNziJ46qowA",
+            authDomain: "student-id-77c22.firebaseapp.com",
+            projectId: "student-id-77c22",
+            storageBucket: "student-id-77c22.firebasestorage.app",
+            messagingSenderId: "291646901870",
+            appId: "1:291646901870:web:05a5fce5252ede9e5a207f"
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -229,15 +229,10 @@
             errorDiv.style.display = 'none';
 
             try {
-                const email = document.getElementById('email').value.trim();
+                const email = document.getElementById('email').value.trim().toLowerCase();
 
-                // Check for duplicate email
-                const existingQuery = await db.collection('students').where('email', '==', email).get();
-                if (!existingQuery.empty) {
-                    throw new Error('A student with this email is already registered.');
-                }
-
-                const formData = {
+                // Prepare student data
+                const studentData = {
                     fullName: document.getElementById('fullName').value,
                     dob: document.getElementById('dob').value,
                     fatherName: document.getElementById('fatherName').value,
@@ -250,43 +245,72 @@
                     createdAt: firebase.firestore.FieldValue.serverTimestamp()
                 };
 
-                // Generate unique 10-digit ID and save
+                // Generate a unique 10‑digit ID with retries
                 let studentId = null;
-                let success = false;
                 let attempts = 0;
                 const maxAttempts = 10;
+                let success = false;
 
                 while (!success && attempts < maxAttempts) {
                     const timestamp = Date.now().toString().slice(-5);
                     const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
                     const candidateId = (timestamp + random).slice(0, 10);
 
+                    // Use a transaction to atomically check email and create both documents
                     try {
-                        // Use set with merge: false – document ID = candidateId, and store studentId field
-                        await db.collection('students').doc(candidateId).set({
-                            ...formData,
-                            studentId: candidateId
+                        await db.runTransaction(async (transaction) => {
+                            // Check if email already exists in emailLookup
+                            const emailRef = db.collection('emailLookup').doc(email);
+                            const emailDoc = await transaction.get(emailRef);
+                            if (emailDoc.exists) {
+                                throw new Error('A student with this email is already registered.');
+                            }
+
+                            // Check if student ID already exists (very unlikely but safe)
+                            const studentRef = db.collection('students').doc(candidateId);
+                            const studentDoc = await transaction.get(studentRef);
+                            if (studentDoc.exists) {
+                                throw new Error('ID collision, retrying...'); // will be caught and retried
+                            }
+
+                            // Create email lookup entry
+                            transaction.set(emailRef, { studentId: candidateId });
+
+                            // Create student document
+                            transaction.set(studentRef, {
+                                ...studentData,
+                                studentId: candidateId
+                            });
                         });
+
+                        // If transaction succeeds, we are done
                         studentId = candidateId;
                         success = true;
                     } catch (error) {
-                        if (error.code === 'already-exists') {
+                        if (error.message === 'A student with this email is already registered.') {
+                            // Duplicate email – stop retrying
+                            throw error;
+                        }
+                        if (error.message === 'ID collision, retrying...') {
                             attempts++;
                             continue;
                         }
+                        // For other errors (permissions, network), rethrow
                         throw error;
                     }
                 }
 
                 if (!success) {
-                    throw new Error('Could not generate a unique ID after several attempts. Please try again.');
+                    throw new Error('Unable to generate a unique ID after several attempts. Please try again.');
                 }
 
+                // Show success
                 studentIdSpan.textContent = studentId;
                 resultDiv.style.display = 'block';
                 registerForm.reset();
 
             } catch (error) {
+                console.error('Registration error:', error);
                 errorMessage.textContent = error.message;
                 errorDiv.style.display = 'block';
             } finally {
