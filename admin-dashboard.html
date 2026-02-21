@@ -4,12 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard - First Class SHS</title>
-    <!-- Firebase SDK (Auth and Firestore) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <style>
-        /* Green & White Theme (same as before, but we can add glass touches if desired) */
         body {
             margin: 20px;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -20,6 +18,56 @@
             color: #1b5e20;
             border-bottom: 2px solid #4caf50;
             padding-bottom: 10px;
+        }
+        #top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        #logout {
+            background: #4caf50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0,100,0,0.2);
+        }
+        #logout:hover {
+            background: #388e3c;
+        }
+        #controls {
+            margin: 20px 0;
+            padding: 20px;
+            background: #e8f5e9;
+            border-radius: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        #controls input, #controls select, #controls button {
+            padding: 10px 15px;
+            border: 1px solid #a5d6a7;
+            border-radius: 30px;
+            background: white;
+            font-size: 0.95rem;
+        }
+        #controls button {
+            background: #4caf50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #controls button:hover {
+            background: #388e3c;
+        }
+        #searchInput {
+            flex: 1;
+            min-width: 250px;
         }
         table {
             border-collapse: collapse;
@@ -50,7 +98,7 @@
             border: none;
             border-radius: 20px;
             font-weight: bold;
-            transition: all 0.2s;
+            transition: 0.2s;
         }
         .edit {
             background: #66bb6a;
@@ -68,48 +116,6 @@
             background: #1b5e20;
             transform: scale(1.02);
         }
-        #logout {
-            float: right;
-            background: #4caf50;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 2px 8px rgba(0,100,0,0.2);
-        }
-        #logout:hover {
-            background: #388e3c;
-        }
-        #importExport {
-            margin: 20px 0;
-            padding: 20px;
-            background: #e8f5e9;
-            border-radius: 16px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-        }
-        #importExport input, #importExport select, #importExport button {
-            padding: 10px 15px;
-            border: 1px solid #a5d6a7;
-            border-radius: 30px;
-            background: white;
-            font-size: 0.95rem;
-        }
-        #importExport button {
-            background: #4caf50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            transition: 0.2s;
-        }
-        #importExport button:hover {
-            background: #388e3c;
-        }
-        /* Modal styling */
         #editModal {
             display: none;
             position: fixed;
@@ -145,48 +151,45 @@
             border-radius: 12px;
             box-sizing: border-box;
         }
-        #editForm button {
+        .modal-buttons {
+            display: flex;
+            justify-content: space-between;
             margin-top: 20px;
+        }
+        .modal-buttons button {
             padding: 12px;
             border: none;
             border-radius: 30px;
             font-weight: bold;
             cursor: pointer;
-            transition: 0.2s;
+            width: 48%;
         }
-        #editForm button[type="submit"] {
+        .modal-buttons button[type="submit"] {
             background: #4caf50;
             color: white;
-            width: 48%;
-            margin-right: 4%;
         }
-        #editForm button[type="button"] {
+        .modal-buttons button[type="button"] {
             background: #f44336;
             color: white;
-            width: 48%;
         }
-        #editForm button[type="submit"]:hover {
+        .modal-buttons button[type="submit"]:hover {
             background: #388e3c;
         }
-        #editForm button[type="button"]:hover {
+        .modal-buttons button[type="button"]:hover {
             background: #d32f2f;
-        }
-        .modal-buttons {
-            display: flex;
-            justify-content: space-between;
         }
     </style>
 </head>
 <body>
-    <button id="logout">Logout</button>
-    <h2>Student Records</h2>
-    <div id="importExport">
-        <input type="file" id="importFile" accept=".csv">
-        <button id="importBtn">Import CSV</button>
-        <button id="exportBtn">Export CSV</button>
-        <label for="sortProgramme">Filter by Programme:</label>
+    <div id="top-bar">
+        <h2>Student Records</h2>
+        <button id="logout">Logout</button>
+    </div>
+
+    <div id="controls">
+        <input type="text" id="searchInput" placeholder="🔍 Search by name, ID, email, phone...">
         <select id="sortProgramme">
-            <option value="">All</option>
+            <option value="">All Programmes</option>
             <option value="General Science">General Science</option>
             <option value="General Arts">General Arts</option>
             <option value="Agric Science">Agric Science</option>
@@ -195,16 +198,19 @@
             <option value="Visual Arts">Visual Arts</option>
             <option value="Technical">Technical</option>
         </select>
-        <label for="sortBranch">Filter by Branch:</label>
         <select id="sortBranch">
-            <option value="">All</option>
+            <option value="">All Branches</option>
             <option value="Afranco (Kumasi)">Afranco (Kumasi)</option>
             <option value="Edwenase (Kumasi)">Edwenase (Kumasi)</option>
             <option value="Accra">Accra</option>
             <option value="Takoradi">Takoradi</option>
             <option value="Tamale">Tamale</option>
         </select>
+        <input type="file" id="importFile" accept=".csv">
+        <button id="importBtn">Import CSV</button>
+        <button id="exportBtn">Export CSV</button>
     </div>
+
     <div id="studentTable">Loading...</div>
 
     <!-- Edit Modal -->
@@ -292,28 +298,46 @@
                     id: doc.id,
                     ...doc.data()
                 }));
-                displayStudents(allStudents);
+                filterAndDisplay();
             } catch (error) {
                 console.error('Error loading students:', error);
                 document.getElementById('studentTable').innerHTML = '<p style="color:red;">Failed to load students.</p>';
             }
         }
 
-        function displayStudents(students) {
+        function filterAndDisplay() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
             const programmeFilter = document.getElementById('sortProgramme').value;
             const branchFilter = document.getElementById('sortBranch').value;
 
-            let filtered = students;
-            if (programmeFilter) filtered = filtered.filter(s => s.programme === programmeFilter);
-            if (branchFilter) filtered = filtered.filter(s => s.branch === branchFilter);
+            let filtered = allStudents.filter(s => {
+                // Search filter (matches ID, name, email, father name, mother name, phones)
+                const matchesSearch = searchTerm === '' || 
+                    (s.studentId && s.studentId.toLowerCase().includes(searchTerm)) ||
+                    (s.fullName && s.fullName.toLowerCase().includes(searchTerm)) ||
+                    (s.email && s.email.toLowerCase().includes(searchTerm)) ||
+                    (s.fatherName && s.fatherName.toLowerCase().includes(searchTerm)) ||
+                    (s.motherName && s.motherName.toLowerCase().includes(searchTerm)) ||
+                    (s.fatherPhone && s.fatherPhone.toLowerCase().includes(searchTerm)) ||
+                    (s.motherPhone && s.motherPhone.toLowerCase().includes(searchTerm));
 
-            if (filtered.length === 0) {
+                const matchesProgramme = programmeFilter === '' || s.programme === programmeFilter;
+                const matchesBranch = branchFilter === '' || s.branch === branchFilter;
+
+                return matchesSearch && matchesProgramme && matchesBranch;
+            });
+
+            displayStudents(filtered);
+        }
+
+        function displayStudents(students) {
+            if (students.length === 0) {
                 document.getElementById('studentTable').innerHTML = '<p>No students found.</p>';
                 return;
             }
 
             let html = '<table><tr><th>ID</th><th>Name</th><th>Programme</th><th>Branch</th><th>Father</th><th>Mother</th><th>Email</th><th>Actions</th></tr>';
-            filtered.forEach(s => {
+            students.forEach(s => {
                 html += `<tr>
                     <td>${s.studentId || s.id}</td>
                     <td>${s.fullName || ''}</td>
@@ -332,8 +356,10 @@
             document.getElementById('studentTable').innerHTML = html;
         }
 
-        document.getElementById('sortProgramme').addEventListener('change', () => displayStudents(allStudents));
-        document.getElementById('sortBranch').addEventListener('change', () => displayStudents(allStudents));
+        // Event listeners for filters and search
+        document.getElementById('searchInput').addEventListener('input', filterAndDisplay);
+        document.getElementById('sortProgramme').addEventListener('change', filterAndDisplay);
+        document.getElementById('sortBranch').addEventListener('change', filterAndDisplay);
 
         window.editStudent = async (id) => {
             try {
@@ -429,7 +455,7 @@
             window.URL.revokeObjectURL(url);
         });
 
-        // Import CSV (expecting the new column order)
+        // Import CSV (expecting 10 columns)
         document.getElementById('importBtn').addEventListener('click', () => {
             const file = document.getElementById('importFile').files[0];
             if (!file) return alert('Please select a CSV file.');
@@ -442,9 +468,10 @@
                 let success = 0, failed = 0;
 
                 for (const row of dataRows) {
-                    // Simple split – adjust if you have commas inside quotes (but for simplicity we assume clean data)
-                    const fields = row.split(',').map(f => f.trim().replace(/^"(.*)"$/, '$1')); // remove quotes
-                    if (fields.length < 10) { failed++; continue; } // now 10 columns
+                    // Simple CSV parsing (if fields contain commas, they should be quoted)
+                    // This basic split works for clean data.
+                    const fields = row.split(',').map(f => f.trim().replace(/^"(.*)"$/, '$1'));
+                    if (fields.length < 10) { failed++; continue; }
                     const [studentId, fullName, dob, fatherName, fatherPhone, motherName, motherPhone, email, branch, programme] = fields;
 
                     if (!studentId) { failed++; continue; }
