@@ -4,81 +4,210 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>First Class SHS - Student Registration</title>
-    <!-- Firebase SDK (only Firestore needed) -->
+    <!-- Firebase SDK (Firestore only) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <style>
-        /* Green & White theme – same as before */
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 600px;
-            margin: 20px auto;
-            padding: 20px;
-            background: #ffffff;
-            color: #2e7d32;
-        }
-        h2 {
-            color: #1b5e20;
-            border-bottom: 2px solid #4caf50;
-            padding-bottom: 10px;
-        }
-        input, select, button {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border: 1px solid #a5d6a7;
-            border-radius: 4px;
+        * {
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
-        button {
-            background: #4caf50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f5e9 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
-        button:hover {
-            background: #388e3c;
+
+        .glass-container {
+            width: 100%;
+            max-width: 700px;
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 8px 32px rgba(0, 100, 0, 0.1);
+            padding: 30px;
         }
-        #result {
-            margin-top: 20px;
-            padding: 15px;
-            background: #e8f5e9;
-            border-left: 5px solid #4caf50;
-            border-radius: 4px;
-            display: none;
-        }
-        #studentId {
+
+        h2 {
             color: #1b5e20;
-            font-weight: bold;
+            font-weight: 600;
+            margin-bottom: 25px;
+            text-align: center;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 4px rgba(0,50,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #2e7d32;
+            font-size: 0.95rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(5px);
+            font-size: 1rem;
+            color: #1e3c1e;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #4caf50;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.2);
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #4caf50, #2e7d32);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(46, 125, 50, 0.3);
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: linear-gradient(135deg, #66bb6a, #388e3c);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(46, 125, 50, 0.4);
+        }
+
+        #result {
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(232, 245, 233, 0.7);
+            backdrop-filter: blur(5px);
+            border-radius: 16px;
+            border-left: 5px solid #4caf50;
+            display: none;
+            text-align: center;
+        }
+
+        #result h3 {
+            color: #1b5e20;
+            margin-bottom: 10px;
+        }
+
+        #result p {
+            font-size: 1.2rem;
+            color: #2e7d32;
+        }
+
+        #studentId {
+            font-weight: 700;
+            color: #1b5e20;
+            background: rgba(255,255,255,0.5);
+            padding: 4px 12px;
+            border-radius: 50px;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        /* subtle placeholder style */
+        ::placeholder {
+            color: #6b8e6b;
+            opacity: 0.7;
         }
     </style>
 </head>
 <body>
-    <h2>First Class SHS - Student Registration</h2>
-    <form id="registerForm">
-        <input type="text" id="fullName" placeholder="Full Name" required>
-        <input type="date" id="dob" required>
-        <input type="text" id="fatherName" placeholder="Father's Name" required>
-        <input type="tel" id="fatherPhone" placeholder="Father's Phone" required>
-        <input type="text" id="motherName" placeholder="Mother's Name" required>
-        <input type="tel" id="motherPhone" placeholder="Mother's Phone" required>
-        <input type="email" id="email" placeholder="Email Address" required>
-        <select id="programme" required>
-            <option value="">Select Programme</option>
-            <option value="General Science">General Science</option>
-            <option value="General Arts">General Arts</option>
-            <option value="Agric Science">Agric Science</option>
-            <option value="Business">Business</option>
-            <option value="Home Economics">Home Economics</option>
-            <option value="Visual Arts">Visual Arts</option>
-            <option value="Technical">Technical</option>
-        </select>
-        <button type="submit">Register</button>
-    </form>
-    <div id="result">
-        <h3>Registration Successful!</h3>
-        <p>Your Student ID: <strong id="studentId"></strong></p>
+    <div class="glass-container">
+        <h2>First Class SHS - Student Registration</h2>
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="fullName">Full Name *</label>
+                <input type="text" id="fullName" placeholder="Enter full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="dob">Date of Birth *</label>
+                <input type="date" id="dob" required>
+            </div>
+
+            <div class="form-group">
+                <label for="fatherName">Father's Name *</label>
+                <input type="text" id="fatherName" placeholder="Father's full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="fatherPhone">Father's Phone *</label>
+                <input type="tel" id="fatherPhone" placeholder="e.g., 0244123456" required>
+            </div>
+
+            <div class="form-group">
+                <label for="motherName">Mother's Name *</label>
+                <input type="text" id="motherName" placeholder="Mother's full name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="motherPhone">Mother's Phone *</label>
+                <input type="tel" id="motherPhone" placeholder="e.g., 0244123456" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address *</label>
+                <input type="email" id="email" placeholder="student@example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label for="branch">Branch *</label>
+                <select id="branch" required>
+                    <option value="">-- Select Branch --</option>
+                    <option value="Afranco (Kumasi)">Afranco (Kumasi)</option>
+                    <option value="Edwenase (Kumasi)">Edwenase (Kumasi)</option>
+                    <option value="Accra">Accra</option>
+                    <option value="Takoradi">Takoradi</option>
+                    <option value="Tamale">Tamale</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="programme">Programme *</label>
+                <select id="programme" required>
+                    <option value="">-- Select Programme --</option>
+                    <option value="General Science">General Science</option>
+                    <option value="General Arts">General Arts</option>
+                    <option value="Agric Science">Agric Science</option>
+                    <option value="Business">Business</option>
+                    <option value="Home Economics">Home Economics</option>
+                    <option value="Visual Arts">Visual Arts</option>
+                    <option value="Technical">Technical</option>
+                </select>
+            </div>
+
+            <button type="submit">Register</button>
+        </form>
+
+        <div id="result">
+            <h3>🎉 Registration Successful!</h3>
+            <p>Your Student ID: <span id="studentId"></span></p>
+        </div>
     </div>
 
     <script>
@@ -97,7 +226,7 @@
         document.getElementById('registerForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            // Collect form data
+            // Collect form data (including branch)
             const formData = {
                 fullName: document.getElementById('fullName').value,
                 dob: document.getElementById('dob').value,
@@ -106,48 +235,45 @@
                 motherName: document.getElementById('motherName').value,
                 motherPhone: document.getElementById('motherPhone').value,
                 email: document.getElementById('email').value,
+                branch: document.getElementById('branch').value,
                 programme: document.getElementById('programme').value,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            // Generate a unique 10-digit student ID and save
+            // Generate unique 10-digit ID (document ID) with retries
             let studentId = null;
             let success = false;
             let attempts = 0;
             const maxAttempts = 10;
 
             while (!success && attempts < maxAttempts) {
-                // Generate candidate ID: last 5 digits of timestamp + 5 random digits
                 const timestamp = Date.now().toString().slice(-5);
                 const random = Math.floor(Math.random() * 100000).toString().padStart(5, '0');
-                const candidateId = (timestamp + random).slice(0, 10); // exactly 10 digits
+                const candidateId = (timestamp + random).slice(0, 10);
 
                 try {
-                    // Try to create a document with this ID
                     await db.collection('students').doc(candidateId).set({
                         ...formData,
-                        studentId: candidateId  // store ID as field too
+                        studentId: candidateId
                     });
-                    // If successful, we're done
                     studentId = candidateId;
                     success = true;
                 } catch (error) {
-                    // If error is due to document already existing, retry
                     if (error.code === 'already-exists') {
                         attempts++;
                         continue;
                     }
-                    // Other errors (permissions, network) – throw
+                    // Other error (permissions, etc.) – rethrow
                     throw error;
                 }
             }
 
             if (!success) {
-                alert('Could not generate a unique ID after several attempts. Please try again.');
+                alert('Could not generate a unique ID. Please try again.');
                 return;
             }
 
-            // Display the generated ID
+            // Show success
             document.getElementById('studentId').textContent = studentId;
             document.getElementById('result').style.display = 'block';
             document.getElementById('registerForm').reset();
